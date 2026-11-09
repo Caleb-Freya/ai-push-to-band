@@ -1,0 +1,17 @@
+<!doctype html>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width">
+<link rel="manifest" href="manifest.json">
+<button id="b">开启通知</button>
+<pre id="out"></pre>
+<script>
+// 把 VAPID 公钥（base64url）填到这里
+const PUBLIC_KEY = "你的VAPID公钥";
+const toBytes = (s) => Uint8Array.from(atob((s + "===".slice((s.length + 3) % 4)).replace(/-/g, "+").replace(/_/g, "/")), (c) => c.charCodeAt(0));
+document.getElementById("b").onclick = async () => {
+  const reg = await navigator.serviceWorker.register("sw.js");
+  if (await Notification.requestPermission() !== "granted") return alert("没给通知权限");
+  const sub = await reg.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: toBytes(PUBLIC_KEY) });
+  // 实际使用时把它 POST 到你的服务器保存；这里先显示出来，复制成 subscription.json
+  document.getElementById("out").textContent = JSON.stringify(sub);
+};
+</script>
