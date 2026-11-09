@@ -1,6 +1,8 @@
 # 让 AI 的话震到你的小米手环
 
-AI 想对你说一句话 → 手机弹通知 → 手环震一下、亮屏显示。
+你不在聊天页面的时候，AI 主动找你 → 手机弹通知 → 手环震一下，你一抬手就知道「他找我了」。
+
+（不是定时闹钟。你正开着聊天页时不推，免得一边看一边震；你走开了它才推。）
 
 不用改手环、不用刷机，靠的是「小米运动健康」本来就有的**应用通知转发**：只要 AI 能让手机弹出一条通知，手环就能收到。
 
@@ -58,7 +60,7 @@ claude mcp add band -- python3 /路径/examples/mcp_server.py
 ```
 AI 就多了一个 `send_to_band` 工具。
 
-**定时提醒**（不用 AI 也行，crontab）：
+**顺便也能做定时提醒**（不用 AI 也行，crontab）：
 ```
 0 15 * * * BARK_KEY=你的key python3 /路径/bark_push.py "下午了" "起来走两步"
 ```
@@ -96,6 +98,32 @@ python3 ntfy_push.py "提醒" "该喝水了"
 4. 发送：`python3 webpush/send.py "标题" "正文"`。
 
 **iPhone 注意**：iOS 16.4 起才支持网页推送，而且必须先用 Safari「分享 → 添加到主屏幕」，从主屏图标打开后再点订阅；直接在 Safari 里打开是订阅不了的。
+
+---
+
+### 作者的用法：不在页面时才推
+
+作者的 AI 平时在自建聊天网页里说话。规则只有一条：**AI 发了新消息，而你此刻没在看这个页面，就推一条到手环。** 做法：
+
+1. 网页在前台时，每 30 秒告诉服务器「我在看」：
+```js
+setInterval(() => {
+  if (document.visibilityState === "visible") fetch("/api/here", { method: "POST" });
+}, 30000);
+document.addEventListener("visibilitychange", () => {
+  if (document.visibilityState === "visible") fetch("/api/here", { method: "POST" });
+});
+```
+2. 服务器记下最后一次「我在看」的时间；AI 每发一条消息时检查一下：
+```python
+import time
+last_seen = 0            # /api/here 被调用时更新：last_seen = time.time()
+
+def on_ai_message(text):
+    if time.time() - last_seen > 60:      # 超过 60 秒没在看 → 你不在页面
+        push("新消息", text)              # 换成 bark_push / ntfy_push / 网页推送 任一种
+```
+这样你开着页面聊天时手环安静，一走开 AI 再找你，手环就震。用 Bark / ntfy 的也可以照搬这个判断。
 
 ---
 
