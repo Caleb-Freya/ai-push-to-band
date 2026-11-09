@@ -2,3 +2,4 @@ bark.conf
 subscription.json
 *.pem
 __pycache__/
+ntfy.conf
